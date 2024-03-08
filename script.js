@@ -1,6 +1,5 @@
 'use strict';
 
-// prettier-ignore
 const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 const form = document.querySelector('.form');
@@ -11,6 +10,9 @@ const inputDuration = document.querySelector('.form__input--duration');
 const inputCadence = document.querySelector('.form__input--cadence');
 const inputElevation = document.querySelector('.form__input--elevation');
 
+let map;
+let mapEvent;
+
 // First function called in case of success, other of fail
 navigator.geolocation.getCurrentPosition(function(position) {
     const latitude = position.coords.latitude;
@@ -19,26 +21,45 @@ navigator.geolocation.getCurrentPosition(function(position) {
 
     const coords = [latitude, longitude];
 
-    const map = L.map('map').setView(coords, 16);
+    map = L.map('map').setView(coords, 16);
     console.log(map);
 
     L.tileLayer('https://tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
 
-    map.on("click", function(mapEvent) { 
-        L.marker(mapEvent.latlng).addTo(map).bindPopup(L.popup({
-            maxWidth: 250,
-            minWidth: 100,
-            autoClose: false,
-            closeOnClick: false,
-            className: "cycling-popup",
-        })
-        ).setPopupContent("Marker")
-        .openPopup();
+    // Click events handling
+    map.on("click", function(mapevent) { 
+        mapEvent = mapevent;
+        form.classList.remove("hidden");
+        inputDistance.focus();
+        
     });
 }, 
 function() {
     alert("Can't get your position");
 })
 
+form.addEventListener("submit", function(e) {
+    // Preventing page reload
+    e.preventDefault();
+
+    // Clear input fields
+    inputDistance.value = inputDuration.value = inputCadence.value = inputElevation.value = '';
+
+    // Display marker
+    L.marker(mapEvent.latlng).addTo(map).bindPopup(L.popup({
+                maxWidth: 250,
+                minWidth: 100,
+                autoClose: false,
+                closeOnClick: false,
+                className: "cycling-popup",
+            })
+            ).setPopupContent("Marker")
+            .openPopup();
+});
+
+inputType.addEventListener("change", function() {
+    inputElevation.closest(".form__row").classList.toggle('form__row--hidden');
+    inputCadence.closest(".form__row").classList.toggle("form__row--hidden");
+});
