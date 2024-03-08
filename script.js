@@ -10,56 +10,80 @@ const inputDuration = document.querySelector('.form__input--duration');
 const inputCadence = document.querySelector('.form__input--cadence');
 const inputElevation = document.querySelector('.form__input--elevation');
 
-let map;
-let mapEvent;
+class App {
 
-// First function called in case of success, other of fail
-navigator.geolocation.getCurrentPosition(function(position) {
-    const latitude = position.coords.latitude;
-    const longitude = position.coords.longitude;
-    console.log(`https://www.google.com/maps/@${latitude},${longitude}`);
+    // Private instance properties
+    #map;
+    #mapEvent;
 
-    const coords = [latitude, longitude];
+    constructor() {
+        this._getPosition();
 
-    map = L.map('map').setView(coords, 16);
-    console.log(map);
+        form.addEventListener("submit", this._newWorkout.bind(this));
+        inputType.addEventListener("change", this._toggleElevationField);
+    }
 
-    L.tileLayer('https://tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(map);
+    _getPosition() {
+        navigator.geolocation.getCurrentPosition(this._loadMap.bind(this), function () {
+            alert("Can't get your position");
+        })
+    };
 
-    // Click events handling
-    map.on("click", function(mapevent) { 
-        mapEvent = mapevent;
+    _loadMap(position) {
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+        // console.log(`https://www.google.com/maps/@${latitude},${longitude}`);
+
+        const coords = [latitude, longitude];
+
+        // Fix Uncaught Error
+        if (this.#map) {
+            this.#map.off();
+            this.#map.remove();
+        }
+        
+        this.#map = L.map('map').setView(coords, 16);
+
+        L.tileLayer('https://tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(this.#map);
+
+        // Click events handling
+        this.#map.on("click", this._showForm.bind(this));
+    }
+
+    _showForm(mapevent) {
+        this.#mapEvent = mapevent;
         form.classList.remove("hidden");
         inputDistance.focus();
+    }
+    
+    _toggleElevationField() {
+        inputElevation.closest(".form__row").classList.toggle('form__row--hidden');
+        inputCadence.closest(".form__row").classList.toggle("form__row--hidden");
+    }
+
+    _newWorkout() {
+        e.preventDefault();
         
-    });
-}, 
-function() {
-    alert("Can't get your position");
-})
-
-form.addEventListener("submit", function(e) {
-    // Preventing page reload
-    e.preventDefault();
-
-    // Clear input fields
-    inputDistance.value = inputDuration.value = inputCadence.value = inputElevation.value = '';
-
-    // Display marker
-    L.marker(mapEvent.latlng).addTo(map).bindPopup(L.popup({
-                maxWidth: 250,
-                minWidth: 100,
-                autoClose: false,
-                closeOnClick: false,
-                className: "cycling-popup",
-            })
-            ).setPopupContent("Marker")
+        // Clear input fields
+        inputDistance.value = inputDuration.value = inputCadence.value = inputElevation.value = '';
+    
+        // Display marker
+        L.marker(this.#mapEvent.latlng).addTo(this.#map).bindPopup(L.popup({
+            maxWidth: 250,
+            minWidth: 100,
+            autoClose: false,
+            closeOnClick: false,
+            className: "cycling-popup",
+        })
+        ).setPopupContent("Marker")
             .openPopup();
-});
+    }
+}
 
-inputType.addEventListener("change", function() {
-    inputElevation.closest(".form__row").classList.toggle('form__row--hidden');
-    inputCadence.closest(".form__row").classList.toggle("form__row--hidden");
-});
+const app = new App;
+app._getPosition();
+
+// First function called in case of success, other of fail
+
