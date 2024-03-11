@@ -11,6 +11,7 @@ const inputElevation = document.querySelector('.form__input--elevation');
 class Workout {
     date = new Date();
     _id = (Date.now() + '').slice(-10); // Id created using last 10 digits of the timestamp
+    clicks = 0;
 
     constructor(coords, distance, duration) {
         this.coords = coords;
@@ -21,6 +22,10 @@ class Workout {
     _setDescription() {
         const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
         this.description = `${this.type[0].toUpperCase()}${this.type.slice(1)} on ${months[this.date.getMonth()]} ${this.date.getDate()}`;
+    }
+
+    click() {
+        this.clicks++;
     }
 
 }
@@ -60,12 +65,14 @@ class App {
     // Private instance properties
     #map;
     #mapEvent;
+    #zoomLevel = 16;
     #workouts = [];
 
     constructor() {
         this._getPosition();
         form.addEventListener("submit", this._newWorkout.bind(this));
         inputType.addEventListener("change", this._toggleElevationField);
+        containerWorkouts.addEventListener("click", this._moveToMarker.bind(this));
     }
 
     _getPosition() {
@@ -87,7 +94,7 @@ class App {
             this.#map.remove();
         }
 
-        this.#map = L.map('map').setView(coords, 16);
+        this.#map = L.map('map').setView(coords, this.#zoomLevel);
 
         L.tileLayer('https://tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -171,7 +178,7 @@ class App {
 
     _renderWorkout(workout) {
         let html = `
-        <li class="workout workout--${workout.type}" data-id=${workout.id}">
+        <li class="workout workout--${workout.type}" data-id=${workout._id}>
         <h2 class="workout__title">${workout.description}</h2>
         <div class="workout__details">
           <span class="workout__icon">${workout.type === "running" ? "🏃🏻‍♂️" : "🚴🏻‍♂️"}</span>
@@ -215,6 +222,22 @@ class App {
         form.insertAdjacentHTML("afterend", html);
     }
 
+    _moveToMarker(e) {
+        const workoutEl = e.target.closest(".workout");
+
+        if(!workoutEl) return;
+
+        const workout = this.#workouts.find(el => el._id === workoutEl.dataset.id);
+
+        this.#map.setView(workout.coords, this.#zoomLevel, {
+            animate:true,
+            pan: {
+                duration: 1
+            }
+        });
+
+        workout.click();
+    }
 }
 
 
